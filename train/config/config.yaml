@@ -36,7 +36,7 @@ train:
     project: "Layeraddition-final-try"
 
   # resume_from_checkpoint: true
-  # lora_path: "/scratch3/ck1_23/OminiControl/runs-new-stage2/20250208-124051-multi/ckpt/300"
+  # lora_path: ""
 
   lora_config:
     r: 4

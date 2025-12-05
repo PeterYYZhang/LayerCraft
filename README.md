@@ -41,6 +41,12 @@ For example, check out our Indoor Decoration examples below that showcase how us
   <img src="figs/Decoration.png" alt="Indoor Decoration Examples">
 </p>
 
+We show the comparison between LayerCraft and other T2I methods in the following figure.
+
+<p align="center">
+  <img src="figs/figure-compare.png" alt="Customized T2I Comparison">
+</p>
+
 </details>
 
 

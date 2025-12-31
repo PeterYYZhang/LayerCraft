@@ -1,9 +1,6 @@
 """
-LayerCraft Coordinator
-----------------------
-Orchestrates the ChainArchitect (layout reasoning) and Object Integration
-Network (OIN) subject-driven inpainting pipeline described in the LayerCraft
-paper (https://arxiv.org/pdf/2504.00010).
+LayerCraft coordinator for layout planning and inpainting.
+Runs ChainArchitect for planning and OIN for subject-driven edits.
 """
 
 from __future__ import annotations
@@ -22,9 +19,7 @@ logging.basicConfig(level=logging.INFO)
 
 
 class LayerCraftCoordinator:
-    """
-    Coordinates ChainArchitect (layout) and OIN (subject-driven inpainting).
-    """
+    """Coordinates ChainArchitect for layout and OIN for inpainting."""
 
     def __init__(self, device: str = "cuda:0", output_dir: Optional[Path] = None):
         self.device = device
@@ -38,9 +33,7 @@ class LayerCraftCoordinator:
     # Internal helpers
     # ------------------------------------------------------------------ #
     def _load_oin_module(self):
-        """
-        Dynamically import OIN-sdp.py to avoid issues with the hyphen in its name.
-        """
+        """Import OIN-sdp.py despite the hyphen in its filename."""
         if self._oin_module is None:
             oin_path = Path(__file__).parent / "OIN-sdp.py"
             spec = importlib.util.spec_from_file_location("oin_sdp", oin_path)
@@ -52,9 +45,7 @@ class LayerCraftCoordinator:
         return self._oin_module
 
     def _prepare_pipe(self, lora1: Optional[str], lora2: Optional[str]):
-        """
-        Initialize FLUX pipeline and (optionally) load LoRAs.
-        """
+        """Initialize FLUX and load LoRAs when provided."""
         oin = self._load_oin_module()
         if self._pipe is None:
             logger.info("Loading FLUX.1 pipeline ...")
@@ -67,9 +58,7 @@ class LayerCraftCoordinator:
     def _maybe_generate_background(
         self, prompt: str, background_path: Optional[str], seed: int
     ) -> str:
-        """
-        Generate a base background with FLUX when none is supplied.
-        """
+        """Generate a background with FLUX when none is supplied."""
         if background_path:
             return background_path
 
@@ -81,9 +70,7 @@ class LayerCraftCoordinator:
         return str(bg_path)
 
     def _parse_plan(self, response: str) -> Dict[str, Any]:
-        """
-        Use ChainArchitect's JSON extraction to get the structured plan.
-        """
+        """Parse the planning JSON returned by ChainArchitect."""
         thinking, plan = self.architect._extract_json_parts(response)
         if "error" in plan:
             raise ValueError(plan["error"])
@@ -95,9 +82,7 @@ class LayerCraftCoordinator:
     def plan_scene(
         self, prompt: str, background_path: Optional[str] = None
     ) -> Dict[str, Any]:
-        """
-        Run ChainArchitect to obtain layout planning JSON.
-        """
+        """Plan the scene with ChainArchitect and return the JSON."""
         if background_path:
             self.architect.add_image_message(prompt, [background_path])
             response = self.architect.get_response("")
@@ -117,18 +102,18 @@ class LayerCraftCoordinator:
         target_objects: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         """
-        Full pipeline: plan with ChainArchitect, then integrate objects with OIN.
+        Plan with ChainArchitect, then integrate objects with OIN.
 
         Args:
-            prompt: user text describing the scene/new objects.
-            background_path: existing background image path; if None, generated via FLUX.
-            subject_map: mapping from object `type` -> subject image path.
-            lora1/lora2: LoRA checkpoints for fill/subject pathways (optional).
-            save_dir: directory to save intermediates/final.
-            seed: RNG seed for background generation when needed.
-            target_objects: optional list of object types to integrate; defaults to all.
+            prompt: scene description.
+            background_path: optional existing background.
+            subject_map: object type -> subject image.
+            lora1/lora2: optional LoRA checkpoints.
+            save_dir: where to write results.
+            seed: RNG seed for background generation.
+            target_objects: optional subset of object types to place.
         Returns:
-            Dict with plan, intermediate paths, and final image path.
+            Dict with the plan, intermediate renders, and final image path.
         """
         save_root = Path(save_dir) if save_dir else self.output_dir
         save_root.mkdir(exist_ok=True, parents=True)

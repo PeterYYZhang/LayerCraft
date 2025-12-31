@@ -6,9 +6,7 @@ from PIL import Image
 from OIN.flux.generate import generate
 
 def get_flux_pipe(device="cuda:0"):
-    """
-    Load the FluxPipeline model.
-    """
+    """Load the FLUX.1 diffusion pipeline."""
     pipe = FluxPipeline.from_pretrained(
         "black-forest-labs/FLUX.1-dev", torch_dtype=torch.bfloat16
     )
@@ -19,18 +17,14 @@ def get_flux_pipe(device="cuda:0"):
 
 
 def load_loras(pipe, lora_path1, lora_path2):
-    """
-    Load the LoRA models into the pipeline.
-    """
+    """Attach LoRA weights for the fill and subject adapters."""
     pipe.load_lora_weights(lora_path1, adapter_name="fill")
     pipe.load_lora_weights(lora_path2, adapter_name="subject")
     return pipe
 
 
 def generate_image(prompt, bg_path, subject_path, bbox, pipe):
-    """
-    Subject-driven inpainting using the OIN pipeline.
-    """
+    """Subject-driven inpainting with the OIN pipeline."""
     bg = Image.open(bg_path)
     subject = Image.open(subject_path)
     bg = bg.crop((0, 0, 512, 512))
@@ -67,9 +61,7 @@ def generate_image(prompt, bg_path, subject_path, bbox, pipe):
     return result
 
 def save_image(image, save_path):
-    """
-    Save the generated image to the specified path.
-    """
+    """Save the generated image to disk."""
     # Check if save_path is a directory
     if os.path.isdir(save_path) or not any(save_path.endswith(ext) for ext in ['.png', '.jpg', '.jpeg']):
         # If it's a directory or has no valid extension, append a default filename with extension
@@ -82,12 +74,10 @@ def save_image(image, save_path):
     print(f"Image saved to {save_path}")
 
 def argparse():
-    """
-    Parse command line arguments.
-    """
+    """Parse command line arguments."""
     import argparse
     parser = argparse.ArgumentParser(description="Subject-driven inpainting using OIN.")
-    parser.add_argument("--prompt", type=str, default="Fill the blank area in the given background with A small, golden-brown teddy bear with a smiling face and soft plush texture., with description: lying on the floor near the edge of the area rug, adding a touch of warmth and playfulness to the minimalist space.", help="Prompt for the generation.")
+    parser.add_argument("--prompt", type=str, default="Fill the blank area with a small teddy bear near the rug edge.", help="Prompt for generation.")
     parser.add_argument("--bg_path", type=str, default="/scratch3/ck1_23/OminiControl/examples/inpaint_6.png", help="Path to the background image.")
     parser.add_argument("--subject_path", type=str, default="/scratch3/ck1_23/OminiControl/examples/lora_1_cond_322 copy.jpg", help="Path to the subject image.")
     parser.add_argument("--bbox", type=str, default="300,300,500,490", help="Bounding box for inpainting (x1,y1,x2,y2).")
@@ -99,10 +89,7 @@ def argparse():
     return parser.parse_args()
 
 def generate_flux_only(prompt, save_path, device="cuda:0", height=1024, width=1024, guidance_scale=3.5, num_inference_steps=50, seed=0):
-    """
-    Plain FLUX.1 generation when no LoRA checkpoints are supplied.
-    Mirrors the reference pattern provided by the user.
-    """
+    """Plain FLUX.1 generation for cases without LoRA checkpoints."""
     pipe = FluxPipeline.from_pretrained("black-forest-labs/FLUX.1-dev", torch_dtype=torch.bfloat16)
     # Offload to CPU to reduce VRAM usage; remove if you prefer full GPU residency.
     pipe.enable_model_cpu_offload()

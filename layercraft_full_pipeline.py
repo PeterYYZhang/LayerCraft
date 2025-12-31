@@ -1,10 +1,6 @@
 """
-LayerCraft end-to-end runner (standalone).
-
-This script keeps existing files untouched and orchestrates the full pipeline:
-1) ChainArchitect plans background + object layout via CoT.
-2) Background is generated (or loaded).
-3) Objects are integrated in order with OIN subject-driven inpainting.
+Standalone runner for the LayerCraft pipeline.
+Plans the scene, prepares a background, then integrates objects with OIN.
 """
 
 import argparse
@@ -19,7 +15,7 @@ from PIL import Image
 
 from ChainArchitect import ChainArchitect
 
-# Load OIN-sdp (hyphenated filename) dynamically to avoid modifying it.
+# Load OIN-sdp (hyphenated filename) without renaming it.
 _OIN_PATH = Path(__file__).parent / "OIN-sdp.py"
 _oin_spec = importlib.util.spec_from_file_location("OIN_sdp", _OIN_PATH)
 if _oin_spec is None or _oin_spec.loader is None:

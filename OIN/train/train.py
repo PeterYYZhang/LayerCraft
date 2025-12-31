@@ -1,17 +1,4 @@
-"""
-Dual-Condition Model Training Script
-
-This script handles the training process for the OminiModel/OINModel dual-condition
-Flux diffusion model. It sets up the training environment, loads and prepares datasets,
-initializes the model with appropriate LoRA adapters, and manages the training process.
-
-The script supports:
-- Distributed training with proper rank detection
-- Configuration via YAML files
-- WandB logging integration
-- Checkpoint saving and resuming
-- Dataset filtering and preprocessing
-"""
+"""Train the dual-condition Flux diffusion model with optional LoRA adapters."""
 
 import os
 import time
@@ -62,16 +49,7 @@ def get_config() -> Dict[str, Any]:
 
 
 def init_wandb(wandb_config: Dict[str, Any], run_name: str) -> None:
-    """
-    Initialize Weights & Biases logging if configured.
-    
-    Args:
-        wandb_config: WandB configuration parameters
-        run_name: Name for this training run
-        
-    Note:
-        Silently fails if WandB initialization fails, with error printed
-    """
+    """Initialize Weights & Biases logging if configured."""
     import wandb
 
     try:
@@ -86,16 +64,7 @@ def init_wandb(wandb_config: Dict[str, Any], run_name: str) -> None:
 
 
 def main() -> None:
-    """
-    Main training function.
-    
-    This function:
-    1. Sets up the training environment
-    2. Loads and prepares the dataset
-    3. Initializes the model
-    4. Configures the trainer
-    5. Starts the training process
-    """
+    """Set up environment, load data, configure the model, and start training."""
     # Initialize training environment
     is_main_process, rank = get_rank() == 0, get_rank()
     torch.cuda.set_device(rank)

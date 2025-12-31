@@ -127,7 +127,7 @@ def main() -> None:
     if training_config["dataset"]["type"] == "image_condition":
         # Load dataset from disk
         save_dir = training_config["dataset"].get(
-            "path", "/scratch3/ck1_23/OminiControl/S200K-modified/arrow_dataset"
+            "path", "IPA300K-modified/arrow_dataset"
         )
         dataset = load_from_disk(save_dir)
 

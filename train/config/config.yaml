@@ -33,7 +33,7 @@ train:
     drop_image_prob: 0
 
   wandb:
-    project: "Layeraddition-final-try"
+    project: "LayerCraft-OIN-training"
 
   # resume_from_checkpoint: true
   # lora_path: ""

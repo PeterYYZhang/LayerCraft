@@ -1,36 +1,66 @@
 import os
-from typing import List, Dict, Any, Optional, Union
-from openai import OpenAI
-from dotenv import load_dotenv
 import json
 import logging
 import base64
 from pathlib import Path
-from datetime import datetime
+from typing import List, Dict, Any, Optional, Union
+
+from dotenv import load_dotenv
+from openai import OpenAI
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-# Set OpenAI API key
-os.environ["OPENAI_API_KEY"] = ""
 
-# Load environment variables
+# Load environment variables early to pick up OPENAI_API_KEY if present
 load_dotenv()
 
+
+# Built-in fallback prompt so ChainArchitect works even if the repo prompt file
+# has not been pulled down yet.
+DEFAULT_SYSTEM_PROMPT = """You are the ChainArchitect agent from the LayerCraft paper (https://arxiv.org/pdf/2504.00010).
+You perform chain-of-thought reasoning to turn a simple user prompt (and optional reference images)
+into a structured layout plan for layered text-to-image generation and subject-driven inpainting.
+
+Return your reasoning followed by a single JSON object with the fields:
+- background_analysis: {description: string, included_elements: [string]}
+- region_analysis: [{region: string, description: string}]
+- object_placements: array of objects with:
+    type: string (object name), position: string, prompt: string,
+    bounding_box: [x1, y1, x2, y2] in 0-512 image space,
+    generation_order: integer (lower is farther / earlier).
+
+Guidelines: boxes must be inside the 0-512 canvas; keep prompts concise but descriptive;
+respect spatial relationships and depth ordering; do not wrap JSON in Markdown fences."""
+
+
 class ChainArchitect:
-    def __init__(self, output_dir: Optional[Path] = None):
-        self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        with open('prompts/chain_architect_sys.md', 'r') as f:
-            self.system_prompt = f.read()
-        self.messages = [
-            {
-                "role": "system",
-                "content": self.system_prompt
-            }
-        ]
+    def __init__(
+        self,
+        output_dir: Optional[Path] = None,
+        system_prompt_path: Optional[Path] = None,
+    ):
+        # Prefer env var if set; otherwise allow explicit override.
+        api_key = os.getenv("OPENAI_API_KEY", "")
+        self.client = OpenAI(api_key=api_key if api_key else None)
+
+        self.system_prompt = self._load_system_prompt(system_prompt_path)
+        self.messages = [{"role": "system", "content": self.system_prompt}]
+
         # Use provided output directory or default to "outputs"
         self.output_dir = output_dir if output_dir is not None else Path("outputs")
-        self.output_dir.mkdir(exist_ok=True)
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+
+    def _load_system_prompt(self, system_prompt_path: Optional[Path]) -> str:
+        """Load the system prompt from file, falling back to an embedded default."""
+        prompt_path = system_prompt_path or Path("prompts/chain_architect_sys.md")
+        try:
+            if prompt_path.exists():
+                return prompt_path.read_text()
+            logger.warning("System prompt file not found at %s; using default prompt.", prompt_path)
+        except Exception as err:
+            logger.warning("Failed reading system prompt at %s: %s; using default.", prompt_path, err)
+        return DEFAULT_SYSTEM_PROMPT
 
     def save_outputs(self, thinking_process: str, json_output: Dict[str, Any], prompt: str) -> None:
         """
@@ -184,26 +214,33 @@ class ChainArchitect:
                 logger.error(f"Failed to fix JSON formatting: {str(e2)}")
                 return text, {"error": f"Invalid JSON in response: {str(e)}"}
 
-    def get_response(self, message: Union[str, List[Dict[str, Any]]]) -> str:
+    def get_response(
+        self,
+        message: Union[str, List[Dict[str, Any]]],
+        parse_json: bool = False,
+    ) -> Union[str, Dict[str, Any]]:
         """
         Get response from the model.
-        message can be either a string (text message) or a list of content parts (text + images)
+
+        Args:
+            message: string or list of content parts (text + images).
+            parse_json: when True, return a dict containing the raw response,
+                        extracted thinking process, and parsed JSON.
         """
         self.add_message("user", message)
-        
+
         try:
             response = self.client.chat.completions.create(
                 model="gpt-4o-2024-08-06",
                 messages=self.messages,
-                max_tokens=10000,
-                temperature=0.5
+                max_tokens=8000,
+                temperature=0.5,
             ).choices[0].message.content
 
             # Extract thinking process and JSON output from response
             try:
-                # Extract JSON parts and get remaining text
                 thinking_process, json_output = self._extract_json_parts(response)
-                
+
                 # Validate required fields for ChainArchitect
                 if "error" not in json_output:
                     required_fields = ["background_analysis", "region_analysis", "object_placements"]
@@ -211,23 +248,53 @@ class ChainArchitect:
                     if missing_fields:
                         json_output = {"error": f"Missing required fields in JSON: {', '.join(missing_fields)}"}
 
-                # Get the prompt text if message is a list of content parts
-                prompt_text = message if isinstance(message, str) else next((part["text"] for part in message if part["type"] == "text"), "unknown_prompt")
-                
+                prompt_text = (
+                    message
+                    if isinstance(message, str)
+                    else next((part["text"] for part in message if part["type"] == "text"), "unknown_prompt")
+                )
+
                 # Save both outputs
                 self.save_outputs(thinking_process, json_output, prompt_text)
             except Exception as e:
                 logger.error(f"Error processing response: {str(e)}")
-                json_output = {"error": f"Error processing response: {str(e)}"}
+                thinking_process, json_output = "", {"error": f"Error processing response: {str(e)}"}
 
             # Add the response to the conversation history
             self.add_message("assistant", response)
-            
+
+            if parse_json:
+                return {
+                    "raw_response": response,
+                    "thinking_process": thinking_process,
+                    "json_output": json_output,
+                }
+
             return response
-            
+
         except Exception as e:
             logger.error(f"Error getting response from model: {str(e)}")
             raise
+
+    def plan_layout(
+        self,
+        prompt: str,
+        image_paths: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Convenience method: send the prompt (and optional reference images) and
+        return parsed planning results.
+        """
+        if image_paths:
+            self.add_image_message(prompt, image_paths)
+            message = ""
+        else:
+            message = prompt
+
+        result = self.get_response(message, parse_json=True)
+        if not isinstance(result, dict):
+            return {"thinking_process": "", "json_output": {"error": "Unexpected response type"}, "raw_response": result}
+        return result
 
     def reset(self):
         """Reset the conversation history while keeping the system prompt."""

@@ -106,5 +106,4 @@ sh train.sh
 
 ## TODO:
 1. Release the code for Object Integration Network (OIN) for T2I models and show more examples. [Done]
-2. Release the weights for the OIN model.
-2. OpenSource ChainArchitect and LayerCraft Coordinator.
+2. Release the weights for the OIN model. 

@@ -104,6 +104,13 @@ cd train
 sh train.sh
 ```
 
+## Subject Driven Inpainting
+### Download the OIN model lora checkpoints
+You can download the OIN model LoRA checkpoints from [this Google Drive link](https://drive.google.com/drive/folders/1OlDKIHBEs5g-OtIzX-70CZGIHTNrU_D_?usp=share_link).
+
+Run the example.ipynb file in OIN-infer folder to see the example of subject driven inpainting.
+
+
 ## TODO:
 1. Release the code for Object Integration Network (OIN) for T2I models and show more examples. [Done]
 2. Release the weights for the OIN model. 

@@ -233,11 +233,13 @@ def coordinator_tools(
         Tool(
             name="generate_full_scene",
             description=(
-                "Fast path for simple scenes. After plan_layout, call this when the "
-                "whole prompt can be generated as one coherent image without separate "
-                "bbox-controlled inpainting. The Coordinator checks whether the layout "
-                "is simple enough; if the result is skipped, continue with "
-                "generate_background and the normal object-by-object flow."
+                "Fast path for prompts that are visually simple even if they contain "
+                "several objects, such as regular grids, rows, flat lays, or symmetric "
+                "arrangements. After plan_layout, call this when the whole prompt can "
+                "be generated as one coherent image without separate bbox-controlled "
+                "inpainting. Judge difficulty from the prompt/composition, not object "
+                "count alone. If the result is skipped, continue with generate_background "
+                "and the normal object-by-object flow."
             ),
             input_schema={
                 "type": "object",
@@ -251,7 +253,10 @@ def coordinator_tools(
                     },
                     "reason": {
                         "type": "string",
-                        "description": "Why this planned layout is simple enough for one-shot generation.",
+                        "description": (
+                            "Why the prompt/composition is simple enough for one-shot "
+                            "generation despite the object count."
+                        ),
                     },
                 },
                 "required": ["size", "reason"],

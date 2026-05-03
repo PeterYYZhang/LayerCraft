@@ -149,18 +149,6 @@ class Coordinator:
         def save_layout() -> None:
             recorder.save_json(f"layout_v{state['layout_version']}.json", require_layout())
 
-        def foreground_exclusion_concepts() -> list[str]:
-            layout = require_layout()
-            concepts: list[str] = []
-            for obj in layout.get("objects", []):
-                name = str(obj.get("name", "")).replace("_", " ").strip()
-                description = str(obj.get("description", "")).strip()
-                if name:
-                    concepts.append(name)
-                if description:
-                    concepts.append(description)
-            return concepts
-
         def update_object_bbox(object_name: str, bbox: list[int]) -> None:
             _, obj = find_object(object_name)
             normalized_bbox = [int(value) for value in bbox]
@@ -190,7 +178,6 @@ class Coordinator:
                 args["viewpoint"],
                 (int(size[0]), int(size[1])),
                 gpu_id=self.gpu_id,
-                excluded_concepts=foreground_exclusion_concepts(),
             )
             image_id = registry.register(image, artifact_name="background.png")
             state["current_image_id"] = image_id
@@ -198,13 +185,8 @@ class Coordinator:
 
         def simple_scene_issues(layout: dict[str, Any]) -> list[str]:
             objects = layout.get("objects", [])
-            if len(objects) > 3:
-                return ["more than three planned objects"]
             if any(obj.get("requires_reference") for obj in objects):
                 return ["one or more objects require a reference image"]
-            relation_count = sum(len(obj.get("relations", [])) for obj in objects)
-            if relation_count > 5:
-                return ["too many spatial/object relations for one-shot generation"]
             return []
 
         def full_scene_prompt(layout: dict[str, Any]) -> str:

@@ -111,6 +111,7 @@ You can download the OIN model LoRA checkpoints from [this Google Drive link](ht
 Run the example.ipynb file in OIN-infer folder to see the example of subject driven inpainting.
 
 ## Run LayerCraft T2I automatically
+Please export the OPENAI_API_KEY and HF_TOKEN environment variables.
 ```bash
 cd pipe
 python run.py --prompt <prompt> --gpu <id>

@@ -1,0 +1,7 @@
+openai
+diffusers>=0.31.0
+transformers
+accelerate
+torch
+pillow
+pytest

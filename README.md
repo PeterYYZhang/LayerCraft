@@ -110,7 +110,11 @@ You can download the OIN model LoRA checkpoints from [this Google Drive link](ht
 
 Run the example.ipynb file in OIN-infer folder to see the example of subject driven inpainting.
 
+## Run LayerCraft T2I automatically
+```bash
+cd pipe
+python run.py --prompt <prompt> --gpu <id>
 
-## TODO:
-1. Release the code for Object Integration Network (OIN) for T2I models and show more examples. [Done]
-2. Release the weights for the OIN model. 
+#example
+python run.py --prompt "A bedroom with Van Gogh's starry night on the wall, a morden desk top, a glass closet, a vintage bed" --gpu 0
+```

@@ -10,7 +10,11 @@ from .tools import architect_tools
 
 SYSTEM_PROMPT = (
     "You are ChainArchitect. Convert the prompt into a background and ordered foreground objects.\n"
-    "Use only the provided tools and submit the layout when complete."
+    "Use only the provided tools and submit the layout when complete.\n"
+    "The background description must be strictly environment-only: do not include "
+    "foreground object words, synonyms, or related concepts. Put every requested "
+    "foreground concept only in add_object calls.\n"
+    "Choose a viewpoint that leaves clear, plausible space for all planned objects."
 )
 
 
@@ -102,7 +106,10 @@ def plan_layout(
     user = (
         f"Prompt: {enriched_prompt}\n"
         f"Canvas size: {canvas_size[0]}x{canvas_size[1]} pixels.\n"
-        "Plan all visible foreground objects with pixel bboxes."
+        "Plan all visible foreground objects with pixel bboxes.\n"
+        "Set a background prompt that contains only the static environment and no "
+        "words or related concepts from the foreground objects. Select a good camera "
+        "viewpoint/framing that makes the object placements natural and visible."
     )
     result = run_agent(
         SYSTEM_PROMPT,

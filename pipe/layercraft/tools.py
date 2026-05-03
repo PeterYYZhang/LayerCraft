@@ -85,18 +85,27 @@ def architect_tools(
             description=(
                 "Records the background scene and camera viewpoint. Call exactly once "
                 "before adding objects. The background must describe only the static "
-                "environment, not the foreground objects."
+                "environment, not the foreground objects. Its description must not "
+                "contain foreground object words, synonyms, or related concepts. The "
+                "viewpoint should be intentionally chosen to leave clear, plausible "
+                "space for all foreground objects."
             ),
             input_schema={
                 "type": "object",
                 "properties": {
                     "description": {
                         "type": "string",
-                        "description": "Detailed background scene without foreground objects.",
+                        "description": (
+                            "Detailed static environment only. Do not mention, imply, "
+                            "or use words related to any foreground object."
+                        ),
                     },
                     "viewpoint": {
                         "type": "string",
-                        "description": "Camera viewpoint, framing, lens feel, and perspective.",
+                        "description": (
+                            "Camera viewpoint, framing, lens feel, and perspective chosen "
+                            "to support natural placement of all foreground objects."
+                        ),
                     },
                 },
                 "required": ["description", "viewpoint"],

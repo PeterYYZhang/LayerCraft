@@ -215,11 +215,20 @@ def flux_generate_background(
     size: tuple[int, int],
     *,
     gpu_id: int,
+    excluded_concepts: list[str] | None = None,
 ) -> Image.Image:
     pipe = get_flux_background_pipeline(gpu_id)
+    exclusions = ""
+    if excluded_concepts:
+        exclusions = (
+            "\nDo not include, depict, imply, or foreshadow these foreground concepts: "
+            + "; ".join(excluded_concepts)
+            + "."
+        )
     prompt = (
         f"{description}\n\nCamera/viewpoint: {viewpoint}\n"
-        "No foreground subject objects; generate only the background environment."
+        "No foreground subject objects; generate only the static background environment."
+        f"{exclusions}"
     )
     result = pipe(
         prompt=prompt,
